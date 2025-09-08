@@ -19,16 +19,16 @@
 // -------------------------------------------------
 //               USER CONTROLS
 // -------------------------------------------------
-
+use <bend.scad>
 // Placement of the imported head
-head_scale      = 1.0;            // overall scale factor for head.stl
-head_rot        = [0,0,0];        // [rx, ry, rz] in degrees
-head_translate  = [0,0,0];        // [x,y,z] mm
+head_scale      = 5.0;            // overall scale factor for head.stl
+head_rot        = [0,0,180];        // [rx, ry, rz] in degrees
+head_translate  = [0,-20,0];        // [x,y,z] mm
 
 // Region of the face to capture (a front-facing rectangular prism)
-face_w          = 140;            // width of face capture region (mm)
-face_h          = 180;            // height of face capture region (mm)
-clip_depth      = 90;             // depth of capture along +Z (mm). 0 is the clip plane at z=0.
+face_w          = 70;            // width of face capture region (mm)
+face_h          = 50;            // height of face capture region (mm)
+clip_depth      = 100;             // depth of capture along +Z (mm). 0 is the clip plane at z=0.
 clip_z_front    = 0;              // where the front clip plane sits (mm). You can slide this.
 
 // Mask fit parameters
@@ -37,13 +37,13 @@ thickness       = 2.5;            // mask wall thickness (mm)
 edge_bleed      = 3.0;            // how much to inset the inner clip to avoid razor-thin rims (mm)
 
 // Leaf field parameters (the mask will "consist of" these leaves)
-leaf_len        = 36;             // base leaf length (mm)
-leaf_w          = 22;             // base leaf width (mm)
-leaf_thick      = 3.2;            // thickness of each leaf plate before conforming (mm)
+leaf_len        = 60;             // base leaf length (mm)
+leaf_w          = 20;             // base leaf width (mm)
+leaf_thick      = 1;            // thickness of each leaf plate before conforming (mm)
 leaf_spacing    = 24;             // grid spacing for leaf placement (mm)
 leaf_push       = 40;             // how far leaves extend into the face volume in -Z (mm)
 leaf_twist_deg  = 20;             // extra random-like rotation variation (± deg)
-
+leaf_offset     = 1;
 // Eye openings (approximate; adjust to your head/stl)
 enable_eyes     = true;           // set false to disable
 eye_w           = 60;             // width of each eye cut (mm)
@@ -68,7 +68,7 @@ tab_offset_y    = 0;              // vertical position for tabs
 tab_offset_z    = 20;             // relative to clip front
 
 // Preview quality
-$fn = 36; // increase for smoother spheres in minkowski and leaf edges
+$fn = 10; // increase for smoother spheres in minkowski and leaf edges
 
 // -------------------------------------------------
 //               CORE GEOMETRY
@@ -135,15 +135,6 @@ module BASE_MASK() {
 // -------------------------------------------------
 
 // Simple teardrop-like leaf: built from a hull of circles; extruded into a plate
-module leaf3d(len=30, wid=18, thick=3) {
-    linear_extrude(height=thick)
-        hull() {
-            translate([0,0])     circle(d=wid);
-            translate([len*0.55,0]) circle(d=wid*0.75);
-            // a near-point creates a tip
-            translate([len,0])   circle(d=0.1);
-        }
-}
 
 // A pseudo-random rotation from integer x,y using a simple hash trick
 function hash_angle(x,y,spread=leaf_twist_deg) =
@@ -229,13 +220,81 @@ module LEAF_MASK() {
 
 // Show helpers (toggle for debugging)
 show_head      = true;   // visualize the imported head
-show_clip_box  = true;   // visualize the clipping window
-show_base_mask = true;   // show the un-leafy shell
+show_clip_box  = false;   // visualize the clipping window
+show_base_mask = false;   // show the un-leafy shell
 
 // Preview scene
 if (show_head) color([0.8,0.8,0.8,0.4]) HEAD();
 if (show_clip_box) color([1,0,0,0.2]) FACE_CLIP_BOX();
 if (show_base_mask) color([0,0.6,1,0.3]) BASE_MASK();
 
+
+
 // Export this:
-LEAF_MASK();
+// LEAF_MASK();
+ear_pos_x = 32;
+ear_pos_y = -28;
+ear_pos_z = 50;
+leafs_rot_angle = 3;
+bend_factor = 160;
+module leaf(len=leaf_len, wid=leaf_w, thick=leaf_thick,angle=0,bend=bend_factor) {
+    
+        
+        translate([ear_pos_x,ear_pos_y,ear_pos_z])
+   rotate([angle,0,0])
+    
+    
+        rotate([90,0,-90])
+        
+        union(){
+         
+        difference(){
+            circle(d=10);
+            circle(d=8);}
+    rotate([15,leafs_rot_angle,0])
+    translate([(-len/2)+10,-10,0])
+    cylindric_bend([30,60,3],bend) 
+        rotate([0,0,90])
+    translate([len+10,-wid])linear_extrude(height=thick){
+        union(){
+        hull() {
+            translate([-len+3,0])   square([1,wid/4],center=true);
+            
+            translate([0,0])     square([1,wid],center=true);
+            
+            // a near-point creates a tip
+        }
+       
+}}
+}
+}
+module leaf_left(angle = 0,bend=bend_factor) {
+    
+        translate([ear_pos_x,ear_pos_y,ear_pos_z])
+   rotate([angle,0,0])
+    union() {
+    
+    
+        rotate([90,0,-90])
+        leaf3d(angle=angle,bend=bend);
+            }
+
+}
+
+
+module left() {
+
+
+
+//leaf(angle=40,bend=150);
+leaf(angle=60,bend=180);
+leaf(angle=80,bend=160);
+leaf(angle=100,bend=150);
+leaf(angle=120,bend=120);
+leaf(angle=140,bend=110);
+
+
+}
+
+
+left();
